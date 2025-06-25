@@ -1,0 +1,8 @@
+streamlit
+pdfplumber
+python-docx
+spacy
+openai
+keybert
+yake
+python-dotenv

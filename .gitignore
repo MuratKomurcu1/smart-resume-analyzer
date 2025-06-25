@@ -1,0 +1,16 @@
+# Sanal ortam klasörü
+venv/
+
+# Derlenmiş Python dosyaları
+__pycache__/
+*.pyc
+
+# Gizli bilgiler
+.env
+
+# Streamlit cache
+.streamlit/
+
+# IDE ayarları (opsiyonel)
+.vscode/
+.idea/
