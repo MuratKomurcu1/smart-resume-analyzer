@@ -6,4 +6,4 @@ openai
 keybert
 yake
 python-dotenv
-gradio>=4.28.0
+
