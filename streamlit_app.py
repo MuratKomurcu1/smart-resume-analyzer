@@ -1,49 +1,57 @@
 import streamlit as st
-from cv_parser import extract_text_from_pdf, extract_text_from_docx
-from nlp_analyzer import extract_named_entities, extract_keywords_yake, extract_skills
-from rewriter import rewrite_experience
+import os
+from dotenv import load_dotenv
+import pdfplumber
+import openai
 
-from rewriter import rewrite_experience
+# .env dosyasını yükle
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
+st.set_page_config(page_title="Smart Resume Analyzer", layout="centered")
 
-st.set_page_config(page_title="Smart Resume Analyzer", layout="wide")
-st.title("📄 Smart Resume Analyzer & Rewriter")
-st.write("Upload your CV and get AI-powered feedback to boost your career!")
+st.title("📄 Smart Resume Analyzer")
+st.write("Yüklediğiniz özgeçmişi analiz edip, hedeflediğiniz pozisyona uygun hale getirmenize yardımcı olur.")
 
-uploaded_file = st.file_uploader("Upload your CV (PDF or DOCX)", type=["pdf", "docx"])
+# Hedef pozisyon girişi
+target_role = st.text_input("🎯 Hedeflediğiniz pozisyon nedir? (örn: Data Scientist)")
 
-if uploaded_file:
-    # Text extraction
-    if uploaded_file.name.endswith(".pdf"):
-        with open("temp.pdf", "wb") as f:
-            f.write(uploaded_file.read())
-        text = extract_text_from_pdf("temp.pdf")
-    else:
-        with open("temp.docx", "wb") as f:
-            f.write(uploaded_file.read())
-        text = extract_text_from_docx("temp.docx")
+# CV yükleyici
+uploaded_file = st.file_uploader("📎 Özgeçmişinizi yükleyin (PDF)", type=["pdf"])
 
-    st.subheader("📜 Extracted Text:")
-    st.text_area("Raw CV Text", text, height=300)
+if uploaded_file and target_role:
+    st.info("Özgeçmiş işleniyor...")
 
-    # NLP Analysis
-    st.subheader("🔍 Named Entity Recognition:")
-    st.write(extract_named_entities(text))
+    # PDF'ten metin çıkar
+    with pdfplumber.open(uploaded_file) as pdf:
+        text = "\n".join([page.extract_text() or "" for page in pdf.pages])
 
-    st.subheader("💡 Keywords (YAKE):")
-    st.write(extract_keywords_yake(text))
+    # OpenAI'ya gönder
+    with st.spinner("LLM önerileri hazırlanıyor..."):
+        prompt = f"""
+        Aşağıda bir özgeçmiş metni verilmiştir. Bu kişiyi '{target_role}' pozisyonu için değerlendir.
+        1. Eksik veya geliştirilebilir yönleri belirt.
+        2. Anahtar kelime önerileri sun ve bunları nasıl yapacağını anlat.
+        3. Genel bir geliştirme önerisi ver fakat bu öneri sıradan olmasın bir işe alım yapan asistan gibi davran.
 
-    st.subheader("🛠️ Skills Detected:")
-    st.write(extract_skills(text))
+        Özgeçmiş:
+        {text}
+        """
 
-    # Rewrite with GPT
-    # Rewrite kısmı
-st.subheader("🤖 Rewrite Suggestion:")
-role = st.text_input("What role are you applying for?", "Data Scientist")
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Sen profesyonel bir insan kaynakları kariyer danışmanısın. Kişilerin özgeçmişlerini analiz et ve geliştirme önerileri sun."},
+                {"role": "user", "content": prompt}
+            ]
+        )
 
-if st.button("Rewrite Experience"):
-    try:
-        rewritten = rewrite_experience(text, role_description=role)
-        st.text_area("Rewritten Experience", rewritten, height=300)
-    except Exception as e:
-        st.error(f"Rewrite işlemi başarısız oldu: {e}")
+        output = response.choices[0].message["content"]
+        st.success("Analiz tamamlandı!")
+        st.markdown("### 🧠 Öneriler:")
+        st.write(output)
+
+elif not uploaded_file and target_role:
+    st.warning("Lütfen bir özgeçmiş dosyası yükleyin.")
+elif uploaded_file and not target_role:
+    st.warning("Lütfen hedeflediğiniz pozisyonu yazın.")
