@@ -1,7 +1,16 @@
 import spacy # Natural Language Processing (NLP) library
 from keybert import KeyBERT # Keyword extraction library
 import yake # Yet Another Keyword Extractor (YAKE) library
+import subprocess
+import importlib
 
+# en_core_web_sm modeli kurulu değilse yükle
+try:
+    spacy.load("en_core_web_sm")
+except OSError:
+    subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
+    
+    
 nlp = spacy.load("en_core_web_sm") # Load the English NLP model from spaCy
 kw_model = KeyBERT() # Initialize KeyBERT model
 
