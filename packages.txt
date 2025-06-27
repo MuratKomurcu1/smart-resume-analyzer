@@ -1,0 +1,3 @@
+poppler-utils
+build-essential
+libglib2.0-0
