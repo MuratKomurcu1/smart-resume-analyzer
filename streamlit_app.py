@@ -2,21 +2,18 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 import pdfplumber
-import openai
+from openai import OpenAI
 
-# .env dosyasını yükle
+# .env yükle ve client oluştur
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 st.set_page_config(page_title="Smart Resume Analyzer", layout="centered")
 
 st.title("📄 Smart Resume Analyzer")
 st.write("Yüklediğiniz özgeçmişi analiz edip, hedeflediğiniz pozisyona uygun hale getirmenize yardımcı olur.")
 
-# Hedef pozisyon girişi
 target_role = st.text_input("🎯 Hedeflediğiniz pozisyon nedir? (örn: Data Scientist)")
-
-# CV yükleyici
 uploaded_file = st.file_uploader("📎 Özgeçmişinizi yükleyin (PDF)", type=["pdf"])
 
 if uploaded_file and target_role:
@@ -26,7 +23,7 @@ if uploaded_file and target_role:
     with pdfplumber.open(uploaded_file) as pdf:
         text = "\n".join([page.extract_text() or "" for page in pdf.pages])
 
-    # OpenAI'ya gönder
+    # GPT’ye prompt gönder
     with st.spinner("LLM önerileri hazırlanıyor..."):
         prompt = f"""
         Aşağıda bir özgeçmiş metni verilmiştir. Bu kişiyi '{target_role}' pozisyonu için değerlendir.
@@ -38,7 +35,7 @@ if uploaded_file and target_role:
         {text}
         """
 
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "Sen profesyonel bir insan kaynakları kariyer danışmanısın. Kişilerin özgeçmişlerini analiz et ve geliştirme önerileri sun."},
@@ -46,8 +43,8 @@ if uploaded_file and target_role:
             ]
         )
 
-        output = response.choices[0].message["content"]
-        st.success("Analiz tamamlandı!")
+        output = response.choices[0].message.content
+        st.success("✅ Analiz tamamlandı!")
         st.markdown("### 🧠 Öneriler:")
         st.write(output)
 
