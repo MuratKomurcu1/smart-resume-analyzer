@@ -1,9 +1,10 @@
-streamlit
+sstreamlit
 pdfplumber
 python-docx
 spacy
-openai
+openai>=1.1.0
 keybert
 yake
 python-dotenv
+
 
